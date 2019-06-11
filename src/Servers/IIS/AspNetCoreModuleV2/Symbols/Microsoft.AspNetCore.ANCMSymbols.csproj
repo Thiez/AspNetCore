@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
   <Import Project="..\..\build\assets.props" />
 
   <PropertyGroup>
@@ -12,6 +13,7 @@
       AddPackNativeComponents
     </TargetsForTfmSpecificBuildOutput>
     <PackageId>$(MSBuildProjectName).$(TargetRuntimeIdentifier)</PackageId>
+    <HasReferenceAssembly>false</HasReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(BuildIisNativeProjects)' == 'true' AND '$(VCTargetsPath)' != ''">
@@ -26,10 +28,17 @@
       <DebugSymbolsProjectOutputGroupOutput Remove="@(DebugSymbolsProjectOutputGroupOutput)" />
       <BuiltProjectOutputGroupOutput Include="%(RunShimComponents.DllLocation)" />
       <BuiltProjectOutputGroupOutput Include="%(RunShimComponents.PdbLocation)" />
-      
+
       <NuGetPackInput Include="@(BuiltProjectOutputGroupOutput)" />
     </ItemGroup>
   </Target>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- There is no .dll file for this package. This clears the default vaule for the build output group. -->
+  <ItemGroup>
+    <BuiltProjectOutputGroupKeyOutput Remove="@(BuiltProjectOutputGroupKeyOutput)" />
+  </ItemGroup>
 
   <!-- This project does not produce a binary. Disable the compiler. -->
   <Target Name="Compile" />
