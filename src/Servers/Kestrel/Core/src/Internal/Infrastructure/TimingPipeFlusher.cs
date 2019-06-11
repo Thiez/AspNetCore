@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
         private readonly object _flushLock = new object();
 
         // This ValueTask that was either:
-        // 1. The default value which "IsCompleted"
+        // 1. The default value where "IsCompleted" is true
         // 2. Created by an async method
         // 3. Constructed explicitely from a completed result
         // This means it should be safe to await a single _lastFlushTask instance multiple times.
