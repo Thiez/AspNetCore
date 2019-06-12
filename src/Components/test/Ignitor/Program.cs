@@ -13,6 +13,9 @@ using Microsoft.AspNetCore.Components.Server.BlazorPack;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.ComponentModel;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Browser;
 
 namespace Ignitor
 {
@@ -27,7 +30,7 @@ namespace Ignitor
             }
 
             Console.WriteLine("Press the ANY key to begin.");
-            Console.ReadLine();
+            //Console.ReadLine();
 
             var uri = new Uri(args[0]);
 
@@ -70,7 +73,8 @@ namespace Ignitor
             builder.ConfigureLogging(l => l.AddConsole().SetMinimumLevel(LogLevel.Trace));
             var hive = new ElementHive();
 
-            await using (var connection = builder.Build())
+            HubConnection connection;
+            await using (connection = builder.Build())
             {
                 await connection.StartAsync(CancellationToken);
                 Console.WriteLine("Connected");
@@ -96,7 +100,49 @@ namespace Ignitor
             {
                 var batch = RenderBatchReader.Read(batchData);
                 hive.Update(batch);
-                Console.WriteLine();
+                Console.WriteLine("Hit enter to perform a click");
+
+                if (!hive.TryFindElementById("thecounter", out var elementNode))
+                {
+                    Console.WriteLine("Could not find the counter to perform a click. Exiting.");
+                    return;
+                }
+
+                if (!elementNode.Events.TryGetValue("click", out var clickEventDescriptor))
+                {
+                    Console.WriteLine("Button does not have a click event. Exiting");
+                    return;
+                }
+                var mouseEventArgs = new UIMouseEventArgs()
+                {
+                    Type = clickEventDescriptor.EventName,
+                    Detail = 1,
+                    ScreenX = 0,
+                    ScreenY = 0,
+                    ClientX = 0,
+                    ClientY = 0,
+                    Button = 0,
+                    Buttons = 0,
+                    CtrlKey = false,
+                    ShiftKey = false,
+                    AltKey = false,
+                    MetaKey = false
+                };
+                var browserDescriptor = new RendererRegistryEventDispatcher.BrowserEventDescriptor()
+                {
+                    BrowserRendererId = 0,
+                    EventHandlerId = clickEventDescriptor.EventId,
+                    EventArgsType = "mouse",
+                };
+                var serializedJson = JsonSerializer.ToString(mouseEventArgs, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                var argsObject = new object[] { browserDescriptor, serializedJson };
+                var callId = "0";
+                var assemblyName = "Microsoft.AspNetCore.Components.Browser";
+                var methodIdentifier = "DispatchEvent";
+                var dotNetObjectId = 0;
+                var clickArgs = JsonSerializer.ToString(argsObject, new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                connection.InvokeAsync("BeginInvokeDotNetFromJS", callId, assemblyName, methodIdentifier, dotNetObjectId, clickArgs);
+
             }
 
             void OnError(Error error)

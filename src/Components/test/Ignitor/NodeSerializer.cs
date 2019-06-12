@@ -138,6 +138,21 @@ namespace Ignitor
                     Write("]");
                 }
 
+                if (elementNode.Events.Count > 0)
+                {
+                    Write("  Events: [");
+
+                    foreach (var evt in elementNode.Events)
+                    {
+                        Write(" ");
+                        Write(evt.Value.EventName);
+                        Write("(");
+                        Write(evt.Value.EventId.ToString());
+                        Write(")");
+                    }
+                    Write("]");
+                }
+
                 WriteLine(">");
 
                 _depth++;

@@ -37,6 +37,46 @@ namespace Ignitor
             }
         }
 
+        public bool TryFindElementById(string id, out ElementNode element)
+        {
+            foreach (var kvp in Components)
+            {
+                var component = kvp.Value;
+                if (TryGetElementFromChildren(component, out element))
+                {
+                    return true;
+                }
+            }
+
+            element = null;
+            return false;
+
+            bool TryGetElementFromChildren(Node node, out ElementNode foundNode)
+            {
+                if (node is ElementNode elementNode &&
+                    elementNode.Attributes.TryGetValue("id", out var elementId) &&
+                    elementId?.ToString() == id)
+                {
+                    foundNode = elementNode;
+                    return true;
+                }
+
+                if (node is ContainerNode containerNode)
+                {
+                    for (var i = 0; i < containerNode.Children.Count; i++)
+                    {
+                        if (TryGetElementFromChildren(containerNode.Children[i], out foundNode))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                foundNode = null;
+                return false;
+            }
+        }
+
         private void UpdateComponent(RenderBatch batch, int componentId, ArraySegment<RenderTreeEdit> edits)
         {
             if (!Components.TryGetValue(componentId, out var component))
@@ -91,7 +131,7 @@ namespace Ignitor
                             var node = parent.Children[childIndexAtCurrentDepth + siblingIndex];
                             if (node is ElementNode element)
                             {
-                                applyAttribute(batch, element, frame);
+                                ApplyAttribute(batch, element, frame);
                             }
                             else
                             {
@@ -284,7 +324,7 @@ namespace Ignitor
                 var descendantFrame = batch.ReferenceFrames.Array[i];
                 if (descendantFrame.FrameType == RenderTreeFrameType.Attribute)
                 {
-                    applyAttribute(batch, newElement, descendantFrame);
+                    ApplyAttribute(batch, newElement, descendantFrame);
                 }
                 else
                 {
@@ -296,7 +336,7 @@ namespace Ignitor
             }
         }
 
-        private void applyAttribute(RenderBatch batch, ElementNode elementNode, RenderTreeFrame attributeFrame)
+        private void ApplyAttribute(RenderBatch batch, ElementNode elementNode, RenderTreeFrame attributeFrame)
         {
             var attributeName = attributeFrame.AttributeName;
             var eventHandlerId = attributeFrame.AttributeEventHandlerId;
@@ -309,6 +349,8 @@ namespace Ignitor
                 {
                     throw new InvalidOperationException($"Attribute has nonzero event handler ID, but attribute name '${attributeName}' does not start with 'on'.");
                 }
+                var descriptor = new ElementNode.ElementEventDescriptor(eventName, eventHandlerId);
+                elementNode.SetEvent(eventName, descriptor);
 
                 return;
             }
